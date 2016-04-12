@@ -9,7 +9,7 @@
 #include "net/socket/socket_factory.h"
 #include "net/socket/unix_domain_client_socket.h"
 
-DEFINE_string(connector, "stdio", "Choose stdio,unix,tcp");
+DEFINE_string(connector, "stdio", "Choose stdio,unix:<path>,tcp:<host>:<port>");
 
 // static
 std::unique_ptr<ClientConnector> AIBase::makeConnector()
