@@ -17,14 +17,19 @@ public:
     // Returns false when disconnected.
     explicit ConnectorManager(bool timeout);
 
+    void setPlayer(int playerId, const std::string& programName);
+
+#if 0
     void invokePlayer(int playerId, const std::string& programName);
-    void setConnector(int playerId, std::unique_ptr<ServerConnector> p);
+#endif
 
     bool receive(int frameId, std::vector<FrameResponse> cfr[NUM_PLAYERS]);
 
     ServerConnector* connector(int i) { return connectors_[i].get(); }
 
 private:
+    void setConnector(int playerId, std::unique_ptr<ServerConnector> p);
+
     std::unique_ptr<ServerConnector> connectors_[NUM_PLAYERS];
 
     std::vector<HumanConnector*> humanConnectors_;

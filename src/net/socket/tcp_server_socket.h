@@ -11,7 +11,7 @@ public:
     ~TCPServerSocket() override;
 
     bool bindFromAny(int port);
-    bool listen(int backlog);
+    bool listen(int backlog = 5);
 
     TCPSocket accept();
 

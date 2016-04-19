@@ -22,6 +22,8 @@
 #include "net/socket/unix_domain_socket.h"
 #endif
 
+DEFINE_string(connector, "stdio", "stdio, unix, tcp; how to connect server/client");
+
 using namespace std;
 
 ConnectorManager::ConnectorManager(bool timeout) :
@@ -29,34 +31,66 @@ ConnectorManager::ConnectorManager(bool timeout) :
 {
 }
 
-void ConnectorManager::invokePlayer(int playerId, const string& programName)
+void ConnectorManager::setPlayer(int playerId, const std::string& programName)
 {
     if (programName == "-") {
         setConnector(playerId, unique_ptr<ServerConnector>(new HumanConnector(playerId)));
         return;
     }
 
-    // Invoke player program. Player program should connector to /tmp/puyoai.sock.
-    pid_t pid;
-    {
+    if (FLAGS_connector == "stdio") {
+        setConnector(playerId, ServerConnector::create(playerId, programName));
+        return;
+    }
+
+    if (FLAGS_connector == "unix") {
+        // Invoke player program with UnixDomainSocket.
         char* program_name = strdup(programName.c_str());
         char player_name[] = "Player_";
         player_name[6] = '1' + playerId;
-        char* argv[3] = { program_name, player_name, nullptr };
+        char connector[] = "--connector=unix:/tmp/puyoai.sock";
+        char* argv[] = { program_name, player_name, connector, nullptr };
+        pid_t pid;
         CHECK_EQ(posix_spawn(&pid, programName.c_str(), nullptr, nullptr, argv, nullptr), 0);
 
         free(program_name);
+
+        // Make server socket
+        net::UnixDomainServerSocket socket = net::SocketFactory::instance()->makeUnixDomainServerSocket();
+        file::remove("/tmp/puyoai.sock");
+        socket.bind("/tmp/puyoai.sock");
+        socket.listen(1);
+
+        net::UnixDomainSocket accepted = socket.accept();
+        setConnector(playerId, unique_ptr<ServerConnector>(new SocketConnector(playerId, std::move(accepted))));
+        return;
     }
 
-    // Make server socket
-    // TODO(mayah): Needs to unlink /tmp/puyoai.sock before binding.
-    net::UnixDomainServerSocket socket = net::SocketFactory::instance()->makeUnixDomainServerSocket();
-    file::remove("/tmp/puyoai.sock");
-    socket.bind("/tmp/puyoai.sock");
-    socket.listen(1);
+    if (FLAGS_connector == "tcp") {
+        // Invoke player program with TCP socket.
+        char* program_name = strdup(programName.c_str());
+        char player_name[] = "Player_";
+        player_name[6] = '1' + playerId;
+        char connector[] = "--connector=tcp:localhost:2424";
+        char* argv[] = { program_name, player_name, connector, nullptr };
+        pid_t pid;
+        CHECK_EQ(posix_spawn(&pid, programName.c_str(), nullptr, nullptr, argv, nullptr), 0);
 
-    net::UnixDomainSocket accepted = socket.accept();
-    setConnector(playerId, unique_ptr<ServerConnector>(new SocketConnector(playerId, std::move(accepted))));
+        free(program_name);
+
+        // Make server socket.
+        net::TCPServerSocket socket = net::SocketFactory::instance()->makeTCPServerSocket();
+        socket.bindFromAny(2424);
+        socket.listen();
+
+        net::TCPSocket accepted = socket.accept();
+        accepted.setTCPNodelay();
+
+        setConnector(playerId, unique_ptr<ServerConnector>(new SocketConnector(playerId, std::move(accepted))));
+        return;
+    }
+
+    CHECK(false) << "Unknown connector";
 }
 
 void ConnectorManager::setConnector(int playerId, std::unique_ptr<ServerConnector> p)

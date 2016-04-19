@@ -50,6 +50,7 @@ using namespace std;
 
 DEFINE_string(record, "", "use Puyofu Recorder. 'transition' for transition log, 'field' for field log");
 DEFINE_bool(ignore_sigpipe, false, "true to ignore SIGPIPE");
+
 #ifdef USE_HTTPD
 DEFINE_bool(httpd, false, "use httpd");
 DEFINE_int32(httpd_port, 8000, "httpd port");
@@ -64,6 +65,7 @@ DEFINE_bool(use_cui, false, "use CUI version drawer");
 // When SDL2 is not defined, CUI should be enabled by default.
 DEFINE_bool(use_cui, true, "use CUI version drawer");
 #endif
+
 #if USE_AUDIO_COMMENTATOR
 DEFINE_bool(use_audio, false, "use audio commentator");
 #endif
@@ -133,8 +135,8 @@ int main(int argc, char* argv[])
 #endif
 
     ConnectorManager manager(true);
-    manager.setConnector(0, ServerConnector::create(0, string(argv[1])));
-    manager.setConnector(1, ServerConnector::create(1, string(argv[2])));
+    manager.setPlayer(0, argv[1]);
+    manager.setPlayer(0, argv[2]);
 
 #ifdef USE_HTTPD
     unique_ptr<GameStateHandler> gameStateHandler;
