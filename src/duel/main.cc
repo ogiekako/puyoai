@@ -136,7 +136,7 @@ int main(int argc, char* argv[])
 
     ConnectorManager manager(true);
     manager.setPlayer(0, argv[1]);
-    manager.setPlayer(0, argv[2]);
+    manager.setPlayer(1, argv[2]);
 
 #ifdef USE_HTTPD
     unique_ptr<GameStateHandler> gameStateHandler;
