@@ -7,6 +7,9 @@ class KeySender {
 public:
     virtual ~KeySender() {}
 
+    virtual void start() = 0;
+    virtual void stop() = 0;
+
     virtual void sendWait(int ms) = 0;
     virtual void sendKeySet(const KeySet&, bool forceSend = false) = 0;
     virtual void sendKeySetSeq(const KeySetSeq& keySetSeq) = 0;

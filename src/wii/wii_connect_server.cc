@@ -38,10 +38,15 @@ WiiConnectServer::WiiConnectServer(Source* source, Analyzer* analyzer,
     connector_->setPlayer(0, p1Program);
     connector_->setPlayer(1, p2Program);
     connector_->start();
+
+    keySenders_[0]->start();
+    keySenders_[1]->start();
 }
 
 WiiConnectServer::~WiiConnectServer()
 {
+    keySenders_[0]->stop();
+    keySenders_[1]->stop();
     connector_->stop();
     if (th_.joinable())
         th_.join();

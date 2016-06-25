@@ -10,7 +10,8 @@
 using namespace std;
 
 SerialKeySender::SerialKeySender(const string& deviceName) :
-    lastSent_(KeySet(Key::UP, Key::DOWN))
+    lastSent_(KeySet(Key::UP, Key::DOWN)),
+    should_stop_(false)
 {
     struct termios tio;
     memset(&tio, 0, sizeof(tio));
@@ -59,12 +60,33 @@ SerialKeySender::~SerialKeySender()
     }
 }
 
+void SerialKeySender::start()
+{
+    th_ = std::thread([this]() {
+        this->runLoop();
+    });
+}
+
+void SerialKeySender::stop()
+{
+    should_stop_ = true;
+    th_.join();
+}
+
+void SerialKeySender::runLoop()
+{
+    while (!should_stop_) {
+        unsigned char c = queue_.take();
+        CHECK_EQ(write(fd_, &c, sizeof(unsigned char)), 1);
+    }
+}
+
 void SerialKeySender::sendWait(int ms)
 {
     CHECK_LT(ms, 64);
 
     unsigned char c = 0x80 + ms;
-    CHECK_EQ(write(fd_, &c, sizeof(unsigned char)), 1);
+    queue_.push(c);
     cout << "wait " << ms << endl;
 }
 
@@ -89,5 +111,5 @@ void SerialKeySender::sendKeySetInternal(const KeySet& keySet)
 {
     lastSent_ = keySet;
     unsigned char c = static_cast<unsigned int>(keySet.toInt());
-    CHECK_EQ(write(fd_, &c, sizeof(unsigned char)), 1);
+    queue_.push(c);
 }
